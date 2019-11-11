@@ -26,11 +26,9 @@ make install
 
 ### Making requests
 
-`librequest` supports both blocking (synchronous) and non-blocking (asynchronous) HTTP requests 🎉
+`librequest` supports both synchronous (blocking) and async (non-blocking) HTTP requests 🎉
 
-#### Blocking Example
-
-To make a synchronous request
+#### Synchronous (Blocking) Example
 
 ```c
 #include <request.h>
@@ -43,23 +41,31 @@ int main() {
     .port     = 443,
     .pathname = "/get?foo1=bar1&foo2=bar2",
   };
-  char* reponseBody = Request(opts);
-  printf("Got response:\n%s\n", responseBody);
+
+  char* res = Request(opts);
+
+  printf("Got response:\n%s\n", res);
+
+  // NOTE:
+  // The response is allocated on the heap
+  // so be sure to free it once done
+  free(res);
+
   return 0;
 }
 ```
 
-#### Non-blocking Example
-
-To make an asynchronous request
+#### Async (Non-blocking) Example
 
 ```c
 #include <request.h>
 #include <stdio.h>
 
-void OnComplete(char* responseBody) {
-  printf("Got response:\n%s\n", responseBody);
-  exit(0);
+void OnComplete(char* res) {
+  printf("Got response:\n%s\n", res);
+  // NOTE:
+  // the response is automatically cleaned up
+  // after the callback returns
 }
 
 int main() {
@@ -69,8 +75,12 @@ int main() {
     .port     = 443,
     .pathname = "/get?foo1=bar1&foo2=bar2",
   };
+
   RequestAsync(opts, OnComplete);
-  // block the main thread while we wait for the request to complete
-  while(1) {}
+
+  while(1) {
+    // This blocks the main thread while the request continues on another thread
+    // Use SIGINT (CTRL+C) to kill the program.
+  }
 }
 ```
