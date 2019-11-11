@@ -64,7 +64,7 @@ int main() {
 void OnComplete(char* res) {
   printf("Got response:\n%s\n", res);
   // NOTE:
-  // the response is automatically cleaned up
+  // The response is automatically cleaned up
   // after the callback returns
 }
 
