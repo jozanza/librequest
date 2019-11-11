@@ -1,5 +1,5 @@
 # librequest
-A simple asyn HTTP request library written in pure C
+A simple async HTTP request library written in pure C
 
 ## Installation
 
