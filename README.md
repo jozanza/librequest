@@ -35,22 +35,18 @@ make install
 #include <stdio.h>
 
 int main() {
-  RequestOptions opts = {
-    .method   = RequestMethod_GET,
+  HTTPRequest req = {
+    .method   = HTTPRequestMethod_GET,
+    .port     = HTTPRequestPort_DEFAULT_HTTPS,
     .hostname = "postman-echo.com",
-    .port     = 443,
     .pathname = "/get?foo1=bar1&foo2=bar2",
   };
 
-  char* res = Request(opts);
-
-  printf("Got response:\n%s\n", res);
-
-  // NOTE:
-  // The response is allocated on the heap
-  // so be sure to free it once done
-  free(res);
-
+  HTTPResponse* res = Request(req);
+  if (res) {
+    printf("Got response:\n%s\n", res->body);
+    FreeResponse(res);
+  }
   return 0;
 }
 ```
@@ -60,27 +56,28 @@ int main() {
 ```c
 #include <request.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-void OnComplete(char* res) {
-  printf("Got response:\n%s\n", res);
-  // NOTE:
-  // The response is automatically cleaned up
-  // after the callback returns
+void OnComplete(HTTPResponse* res) {
+  if (res) {
+    printf("Got response:\n%s\n", res->body);
+    FreeResponse(res);
+  }
+  exit(0);
 }
 
 int main() {
-  RequestOptions opts = {
-    .method   = RequestMethod_GET,
+  HTTPRequest req = {
+    .method   = HTTPRequestMethod_GET,
+    .port     = HTTPRequestPort_DEFAULT_HTTPS,
     .hostname = "postman-echo.com",
-    .port     = 443,
     .pathname = "/get?foo1=bar1&foo2=bar2",
   };
 
-  RequestAsync(opts, OnComplete);
+  RequestAsync(req, OnComplete);
 
   while(1) {
     // This blocks the main thread while the request continues on another thread
-    // (use SIGINT (CTRL+C) to kill the program)
   }
 }
 ```

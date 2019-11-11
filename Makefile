@@ -20,13 +20,18 @@ SRC := request.c
 TST := $(SRC) request_test.c
 
 # System libraries (be sure to have these installed)
-CFLAGS := -I/usr/local/opt/openssl/include
+CFLAGS := \
+	-I/usr/local/opt/openssl/include
+
+LDFLAGS := \
+	-Wno-unused-command-line-argument \
+	-L/usr/local/opt/openssl/lib
 
 # Builds the archive
 build:
 	clear
 	rm -rf $(BIN).o $(BIN).a
-	$(CC) $(CFLAGS) $(SRC) -c -o $(BIN).o
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SRC) -c -o $(BIN).o
 	ar rcs lib$(BIN).a $(BIN).o
 	echo "Built lib$(BIN).a"
 
@@ -39,5 +44,5 @@ install: build
 # Runs test suite
 test:
 	clear
-	$(CC) $(CFLAGS) -lcheck $(TST) -o $(BIN)_test && ./$(BIN)_test || rm $(BIN)_test
-	rm test
+	$(CC) $(CFLAGS) $(LDFLAGS) -lcrypto -lssl $(TST) -o $(BIN)_test
+	./$(BIN)_test

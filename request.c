@@ -72,30 +72,30 @@ static SSL_CTX* InitSSLContext(void) {
 //------------------------------------------------------------------------------
 
 // Creates the request headers and body to be written to the socket
-static void serializeRequest(RequestOptions* opts, char req[API_REQUEST_MAX_BUFFER_SIZE + 1]) {
+static void serializeRequest(HTTPRequest* opts, char req[HTTP_REQUEST_MAX_BUFFER_SIZE + 1]) {
   char* version = "1.0";
   char* methodName;
   switch (opts->method) {
-  case RequestMethod_GET:
+  case HTTPRequestMethod_GET:
     methodName = "GET";
     break;
-  case RequestMethod_DELETE:
+  case HTTPRequestMethod_DELETE:
     methodName = "DELETE";
     break;
-  case RequestMethod_PATCH:
+  case HTTPRequestMethod_PATCH:
     methodName = "PATCH";
     break;
-  case RequestMethod_POST:
+  case HTTPRequestMethod_POST:
     methodName = "POST";
     break;
-  case RequestMethod_PUT:
+  case HTTPRequestMethod_PUT:
     methodName = "PUT";
     break;
   }
-  if (RequestMethod_GET == opts->method) {
+  if (HTTPRequestMethod_GET == opts->method) {
     snprintf(
         req,
-        API_REQUEST_MAX_BUFFER_SIZE,
+        HTTP_REQUEST_MAX_BUFFER_SIZE,
         "%s %s HTTP/%s\r\n"
         "Host: %s\r\n"
         "%s"
@@ -108,7 +108,7 @@ static void serializeRequest(RequestOptions* opts, char req[API_REQUEST_MAX_BUFF
   } else {
     snprintf(
         req,
-        API_REQUEST_MAX_BUFFER_SIZE,
+        HTTP_REQUEST_MAX_BUFFER_SIZE,
         "%s %s HTTP/%s\r\n"
         "Host: %s\r\n"
         "%s"
@@ -135,19 +135,40 @@ static char* split(char* str, const char* delim) {
   return p + strlen(delim); // return tail substring
 }
 
-char* Request(RequestOptions* opts) {
-  if (!opts) {
-    perror("No RequestOptions provided to Request()");
+// Returns a copy of the input string allocated on the heap
+static char* copyString(char* a) {
+  if (a == NULL)
+    return NULL;
+  int len = strlen(a) + 1;
+  char* b = malloc(len);
+  strlcpy(b, a, len);
+  return b;
+}
+
+void FreeResponse(HTTPResponse* res) {
+  if (res == NULL) {
+    return;
+  }
+  if (res->headers != NULL)
+    free(res->headers);
+  if (res->body != NULL)
+    free(res->body);
+  free(res);
+}
+
+HTTPResponse* Request(HTTPRequest* req) {
+  if (!req) {
+    perror("No HTTPRequest provided to Request()");
     return NULL;
   }
-  if (opts->debug)
+  if (req->debug)
     printf("----------------\n");
 
   // Will be allocated and filled with response body
-  char* out = NULL;
+  HTTPResponse* res = NULL;
 
   // Create socket and init SSL
-  int sock = SocketConnect(opts->hostname, opts->port);
+  int sock = SocketConnect(req->hostname, req->port);
   if (sock == -1) {
     goto done;
   }
@@ -156,7 +177,7 @@ char* Request(RequestOptions* opts) {
   if (!ssl) {
     goto done;
   }
-  SSL_set_tlsext_host_name(ssl, opts->hostname);
+  SSL_set_tlsext_host_name(ssl, req->hostname);
   SSL_set_fd(ssl, sock);
   if (SSL_connect(ssl) <= 0) {
     // Error occurred, log and close down ssl
@@ -165,46 +186,48 @@ char* Request(RequestOptions* opts) {
   }
 
   // Send request
-  char req[API_REQUEST_MAX_BUFFER_SIZE + 1];
-  serializeRequest(opts, req);
-  if (opts->debug) {
-    printf("Sending request:\n%s\n", req);
+  char reqBuffer[HTTP_REQUEST_MAX_BUFFER_SIZE + 1];
+  serializeRequest(req, reqBuffer);
+  if (req->debug) {
+    printf("Sending request:\n%s\n", reqBuffer);
     printf("...\n");
   }
-  size_t reqLen        = strlen(req);
-  ssize_t bytesWritten = SSL_write(ssl, req, reqLen);
+  size_t reqLen        = strlen(reqBuffer);
+  ssize_t bytesWritten = SSL_write(ssl, reqBuffer, reqLen);
   if (bytesWritten < reqLen) {
     perror("Couldn't write to socket\n");
     goto done;
   }
-  if (opts->debug) {
+  if (req->debug) {
     printf("Request sent!\n");
     printf("...\n");
   }
 
   // Read response
-  char res[API_RESPONSE_MAX_BUFFER_SIZE + 1];
-  bzero(res, API_REQUEST_MAX_BUFFER_SIZE + 1);
-  if (opts->debug) {
+  char resBuffer[HTTP_RESPONSE_MAX_BUFFER_SIZE + 1];
+  bzero(resBuffer, HTTP_REQUEST_MAX_BUFFER_SIZE + 1);
+  if (req->debug) {
     printf("Awaiting response...\n");
   }
   ssize_t bytesRead;
-  while ((bytesRead = SSL_read(ssl, res, API_REQUEST_MAX_BUFFER_SIZE)) != 0) {
-    if (opts->debug)
-      printf("Read %lu bytes...", strlen(res));
+  while ((bytesRead = SSL_read(ssl, resBuffer, HTTP_REQUEST_MAX_BUFFER_SIZE)) != 0) {
+    if (req->debug)
+      printf("Read %lu bytes...", strlen(resBuffer));
   }
 
   // Split response body from response headers
-  char* json = split(res, "\r\n\r\n");
-  if (opts->debug) {
+  char* body    = split(resBuffer, "\r\n\r\n");
+  char* headers = resBuffer;
+  if (req->debug) {
     printf("\n...\n");
-    printf("[HEADER]\n\n%s\n\n", res);
-    printf("[BODY]\n\n%s\n\n", json);
+    printf("[HEADER]\n\n%s\n\n", headers);
+    printf("[BODY]\n\n%s\n\n", body);
   }
 
-  // Allocate & return response body
-  out = malloc(strlen(json) + 1);
-  strcpy(out, json);
+  // Update the response
+  res          = calloc(1, sizeof(*res));
+  res->headers = copyString(headers);
+  res->body    = copyString(body);
 
 done:
   // Destroy socket
@@ -215,7 +238,7 @@ done:
   SSL_CTX_free(sslctx);
 
   // Return response body
-  return out;
+  return res;
 }
 
 //------------------------------------------------------------------------------
@@ -224,8 +247,8 @@ done:
 
 // This struct holds HTTP request options and an onComplete function pointer
 typedef struct AsyncRequestContext {
-  RequestOptions* options;
-  RequestCompleteCallback onComplete;
+  HTTPRequest* options;
+  HTTPRequestCallback onComplete;
 } AsyncRequestContext;
 
 // The pthread that handles the asynchronous request
@@ -234,11 +257,10 @@ static void* requestAsync(void* any) {
   AsyncRequestContext* ctx = any;
 
   // Make Request
-  char* res = Request(ctx->options);
+  HTTPResponse* res = Request(ctx->options);
   ctx->onComplete(res);
 
   // Free allocated memory
-  free(res);
   if (ctx->options->headers != NULL)
     free(ctx->options->headers);
   if (ctx->options->hostname != NULL)
@@ -255,53 +277,33 @@ static void* requestAsync(void* any) {
   pthread_exit(NULL);
 }
 
-int RequestAsync(RequestOptions* opts, RequestCompleteCallback onComplete) {
+int RequestAsync(HTTPRequest* req, HTTPRequestCallback cb) {
   // NOTE:
-  // The AsyncRequestContext contains a full RequestOptions copy
+  // The AsyncRequestContext contains a full HTTPRequest copy
   // Both are heap allocated and freed by requestAsync();
 
   int size = 0;
 
-  // Copy RequestOptions string fields
-  char* headers = NULL;
-  if (opts->headers) {
-    size    = strlen(opts->headers) + 1;
-    headers = malloc(size);
-    strlcpy(headers, opts->headers, size);
-  }
-  char* hostname = NULL;
-  if (opts->hostname) {
-    size     = strlen(opts->hostname) + 1;
-    hostname = malloc(size);
-    strlcpy(hostname, opts->hostname, size);
-  }
-  char* pathname = NULL;
-  if (opts->pathname) {
-    size     = strlen(opts->pathname) + 1;
-    pathname = malloc(size);
-    strlcpy(pathname, opts->pathname, size);
-  }
-  char* body = NULL;
-  if (opts->body) {
-    size = strlen(opts->body) + 1;
-    body = malloc(size);
-    strlcpy(body, opts->body, size);
-  }
+  // Copy HTTPRequest string fields
+  char* headers  = copyString(req->headers);
+  char* hostname = copyString(req->hostname);
+  char* pathname = copyString(req->pathname);
+  char* body     = copyString(req->body);
 
-  // Allocate & assign RequestOptions
-  RequestOptions* copy = calloc(1, sizeof(*copy));
-  copy->method         = opts->method;
-  copy->headers        = headers;
-  copy->hostname       = hostname;
-  copy->port           = opts->port;
-  copy->pathname       = pathname;
-  copy->body           = body;
-  copy->debug          = opts->debug;
+  // Allocate & assign HTTPRequest
+  HTTPRequest* copy = calloc(1, sizeof(*copy));
+  copy->method      = req->method;
+  copy->headers     = headers;
+  copy->hostname    = hostname;
+  copy->port        = req->port;
+  copy->pathname    = pathname;
+  copy->body        = body;
+  copy->debug       = req->debug;
 
   // Allocate & assign AsyncRequestContext
   AsyncRequestContext* ctx = calloc(1, sizeof(*ctx));
   ctx->options             = copy;
-  ctx->onComplete          = onComplete;
+  ctx->onComplete          = cb;
 
   // Create request thread
   pthread_t thread;
