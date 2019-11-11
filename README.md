@@ -1,6 +1,6 @@
 # librequest
 
-A simple async HTTP request library written in pure C
+A simple HTTP request library written in pure C
 
 ## Installation
 
@@ -80,7 +80,7 @@ int main() {
 
   while(1) {
     // This blocks the main thread while the request continues on another thread
-    // Use SIGINT (CTRL+C) to kill the program.
+    // (Use SIGINT (CTRL+C) to kill the program)
   }
 }
 ```
