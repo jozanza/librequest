@@ -1,6 +1,7 @@
 #include "request.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 void OnComplete(HTTPResponse* res) {
   if (res) {
@@ -39,9 +40,6 @@ int main() {
         .pathname = "/get?foo1=bar1&foo2=bar2",
     };
     RequestAsync(&req, OnComplete);
-  }
-
-  while (1) {
-    // This blocks the main thread while the request continues on another thread
+    sleep(100);
   }
 }
