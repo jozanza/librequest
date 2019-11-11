@@ -80,7 +80,7 @@ int main() {
 
   while(1) {
     // This blocks the main thread while the request continues on another thread
-    // (Use SIGINT (CTRL+C) to kill the program)
+    // (use SIGINT (CTRL+C) to kill the program)
   }
 }
 ```
