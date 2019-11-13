@@ -48,7 +48,7 @@ int main() {
   printf("[Body]:\n%s\n\n", res->body);
   // NOTE: Caller is responsible for freeing the
   // response when making a synchronous request
-  FreeResponse(res);
+  FreeResponse(&res);
 
   return 0;
 }
