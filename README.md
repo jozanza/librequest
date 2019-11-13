@@ -43,10 +43,13 @@ int main() {
   };
 
   HTTPResponse* res = Request(req);
-  if (res) {
-    printf("Got response:\n%s\n", res->body);
-    FreeResponse(res);
-  }
+  printf("[Status]: %d\n\n", res->status);
+  printf("[Headers]:\n%s\n\n", res->headers);
+  printf("[Body]:\n%s\n\n", res->body);
+  // NOTE: Caller is responsible for freeing the
+  // response when making a synchronous request
+  FreeResponse(res);
+
   return 0;
 }
 ```
@@ -56,15 +59,14 @@ int main() {
 ```c
 #include <request.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
-void OnComplete(HTTPResponse* res) {
-  if (res) {
-    printf("Got response:\n%s\n", res->body);
-    FreeResponse(res);
-  }
-  exit(0);
+void onComplete(HTTPResponse* res) {
+  printf("[Status]: %d\n\n", res->status);
+  printf("[Headers]:\n%s\n\n", res->headers);
+  printf("[Body]:\n%s\n\n", res->body);
+  // NOTE: The response  is automatically freed
+  // once the onComplete callback returns
 }
 
 int main() {
@@ -75,8 +77,8 @@ int main() {
     .pathname = "/get?foo1=bar1&foo2=bar2",
   };
 
-  RequestAsync(req, OnComplete);
+  RequestAsync(req, onComplete);
 
-  sleep(100);
+  sleep(1);
 }
 ```

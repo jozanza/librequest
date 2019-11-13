@@ -47,11 +47,11 @@ typedef struct HTTPResponse {
 HTTPResponse* Request(HTTPRequest* req);
 
 // Frees an HTTPResponse struct and all of its fields
-void FreeResponse(HTTPResponse*);
+void FreeResponse(HTTPResponse** res);
 
 // A callback that is fired once the async request completes
 typedef void (*HTTPRequestCallback)(HTTPResponse* res);
 
 // Sends a network request on its own thread 🙌 and triggers a callback with the response body
 // Returns -1 if request thread fails to start
-int RequestAsync(HTTPRequest*, HTTPRequestCallback);
+int RequestAsync(HTTPRequest* req, HTTPRequestCallback cb);

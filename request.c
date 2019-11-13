@@ -145,15 +145,19 @@ static char* copyString(char* a) {
   return b;
 }
 
-void FreeResponse(HTTPResponse* res) {
-  if (res == NULL) {
-    return;
+void FreeResponse(HTTPResponse** res) {
+  if (*res != NULL) {
+    if ((*res)->headers != NULL) {
+      free((*res)->headers);
+      (*res)->headers = NULL;
+    }
+    if ((*res)->body != NULL) {
+      free((*res)->body);
+      (*res)->body = NULL;
+    }
+    free(*res);
+    *res = NULL;
   }
-  if (res->headers != NULL)
-    free(res->headers);
-  if (res->body != NULL)
-    free(res->body);
-  free(res);
 }
 
 HTTPResponse* Request(HTTPRequest* req) {
@@ -260,6 +264,7 @@ static void* requestAsync(void* any) {
   // Make Request
   HTTPResponse* res = Request(ctx->options);
   ctx->onComplete(res);
+  FreeResponse(&res);
 
   // Free allocated memory
   if (ctx->options->headers != NULL)
@@ -268,9 +273,8 @@ static void* requestAsync(void* any) {
     free(ctx->options->hostname);
   if (ctx->options->pathname != NULL)
     free(ctx->options->pathname);
-  if (ctx->options->body != NULL) {
+  if (ctx->options->body != NULL)
     free(ctx->options->body);
-  }
   free(ctx->options);
   free(ctx);
 

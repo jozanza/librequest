@@ -4,16 +4,15 @@
 #include <unistd.h>
 
 void OnComplete(HTTPResponse* res) {
-  if (res) {
-    printf("Async Res Headers:\n%s\n\n", res->headers);
-    printf("Async Res Body:\n%s\n\n", res->body);
-    FreeResponse(res);
-  }
-  exit(0);
+  printf("[Status]: %d\n\n", res->status);
+  printf("[Headers]:\n%s\n\n", res->headers);
+  printf("[Body]:\n%s\n\n", res->body);
 }
 
 int main() {
   // Synchronous request
+  printf("Synchronous Request\n");
+  printf("-------------------\n");
   {
     HTTPRequest req = {
         .method   = HTTPRequestMethod_GET,
@@ -23,14 +22,15 @@ int main() {
         .pathname = "/get?foo1=bar1&foo2=bar2",
     };
     HTTPResponse* res = Request(&req);
-    if (res) {
-      printf("Sync Res Headers:\n%s\n\n", res->headers);
-      printf("Sync Res Body:\n%s\n\n", res->body);
-      FreeResponse(res);
-    }
+    printf("[Status]: %d\n\n", res->status);
+    printf("[Headers]:\n%s\n\n", res->headers);
+    printf("[Body]:\n%s\n\n", res->body);
+    FreeResponse(&res);
   }
 
   // Asynchronous request
+  printf("Async Request\n");
+  printf("-------------\n");
   {
     HTTPRequest req = {
         .method   = HTTPRequestMethod_GET,
@@ -40,6 +40,6 @@ int main() {
         .pathname = "/get?foo1=bar1&foo2=bar2",
     };
     RequestAsync(&req, OnComplete);
-    sleep(100);
+    sleep(1);
   }
 }
