@@ -46,6 +46,7 @@ int main() {
   printf("[Status]: %d\n\n", res->status);
   printf("[Headers]:\n%s\n\n", res->headers);
   printf("[Body]:\n%s\n\n", res->body);
+
   // NOTE: Caller is responsible for freeing the
   // response when making a synchronous request
   FreeResponse(&res);
@@ -65,6 +66,7 @@ void onComplete(HTTPResponse* res) {
   printf("[Status]: %d\n\n", res->status);
   printf("[Headers]:\n%s\n\n", res->headers);
   printf("[Body]:\n%s\n\n", res->body);
+
   // NOTE: The response  is automatically freed
   // once the onComplete callback returns
 }
