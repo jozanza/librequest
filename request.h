@@ -20,7 +20,7 @@ typedef enum HTTPRequestMethod {
 
 // Some common HTTP request port numbers
 typedef enum HTTPRequestPort {
-  HTTPRequestPort_DEFAULT_HTTP = 80,
+  HTTPRequestPort_DEFAULT_HTTP  = 80,
   HTTPRequestPort_DEFAULT_HTTPS = 443,
 } HTTPRequestPort;
 
@@ -37,6 +37,7 @@ typedef struct HTTPRequest {
 
 // HTTP response
 typedef struct HTTPResponse {
+  int status;
   char* headers;
   char* body;
 } HTTPResponse;

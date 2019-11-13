@@ -119,7 +119,7 @@ static void serializeRequest(HTTPRequest* opts, char req[HTTP_REQUEST_MAX_BUFFER
         opts->pathname,
         version,
         opts->hostname,
-        opts->headers,
+        opts->headers == NULL ? "" : opts->headers,
         (int)strlen(opts->body),
         opts->body);
   }
@@ -226,6 +226,7 @@ HTTPResponse* Request(HTTPRequest* req) {
 
   // Update the response
   res          = calloc(1, sizeof(*res));
+  res->status  = atoi((char[]){headers[9], headers[10], headers[11], 0});
   res->headers = copyString(headers);
   res->body    = copyString(body);
 
