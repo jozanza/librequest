@@ -1,3 +1,6 @@
+# Test suite binary
+request_test
+
 # OSX
 .DS_Store
 

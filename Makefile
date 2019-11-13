@@ -46,3 +46,4 @@ test:
 	clear
 	$(CC) $(CFLAGS) $(LDFLAGS) -lcrypto -lssl $(TST) -o $(BIN)_test
 	./$(BIN)_test
+	rm -rf ./$(BIN)_test
